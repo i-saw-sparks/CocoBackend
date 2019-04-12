@@ -21,6 +21,8 @@ def alchemyencoder(obj):
 
 
 def _get_order(request: Request) -> Response:
+    """Obtinene una request y devuelve todas las ordenes que tenga el usuario en JSON,
+    en caso de recibir el parametro id, se devuelve la orden especifica en JSON."""
     if request.authenticated_userid is not None:
         try:
             order_data = request.params
@@ -65,6 +67,8 @@ def _get_order(request: Request) -> Response:
 
 
 def _modify_order(request: Request) -> Response:
+    """Recibe un objeto Request. Modifica los datos de una orden.
+    La funcion solo modifica los datos que fueron enviados como parametros."""
     if request.authenticated_userid:
         try:
             order_data = request.json_body
@@ -97,6 +101,9 @@ def _modify_order(request: Request) -> Response:
 
 
 def _create_order(request: Request) -> Response:
+    """Recibe un objeto Request. Crea una orden con los datos
+    que se enviaron como parametros. Devuelve la id
+    de la orden creada."""
     if request.authenticated_userid:
         try:
             order_data = request.json_body
@@ -124,7 +131,8 @@ def _create_order(request: Request) -> Response:
 
 
 def _delete_order(request: Request) -> Response:
-
+    """Recibe un objeto Request. Elimina la orden
+    que fue especificada por el parametro id."""
     if request.authenticated_userid:
         delete_data = request.json_body
 
@@ -140,6 +148,8 @@ def _delete_order(request: Request) -> Response:
 
 
 def order_entry(request: Request):
+    """Recibe un objeto Request. Ejecuta un metodo
+    dependiendo del metodo http usado"""
     if request.method == 'GET':
         return _get_order(request)
     elif request.method == 'POST':
