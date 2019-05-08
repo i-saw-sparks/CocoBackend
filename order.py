@@ -108,6 +108,7 @@ def _create_order(request: Request) -> Response:
     de la orden creada."""
     if request.authenticated_userid:
         try:
+            #transaction = db.transaction()
             order_data = request.json_body
             stmt: TextClause = text('INSERT into cocollector."Orden"("Total",'
                                     '"Status",'
@@ -128,7 +129,7 @@ def _create_order(request: Request) -> Response:
             current_user_data = [dict(r) for r in user_result][0]
 
             id_order = [dict(r) for r in id_order_data][0]
-            conn = HTTPConnection('192.168.84.75', 6543, timeout=10000)
+            conn = HTTPConnection('192.168.7.147', 6543, timeout=10000) #ggg cuidado con ésta IP
             conn.request('POST', '/transaccion', json.dumps({
                 'monto': order_data['total'] * -1,
                 'descripcion': 'compra en tienda',
