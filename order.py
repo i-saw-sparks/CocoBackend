@@ -129,16 +129,29 @@ def _create_order(request: Request) -> Response:
             current_user_data = [dict(r) for r in user_result][0]
 
             id_order = [dict(r) for r in id_order_data][0]
-            conn = HTTPConnection('192.168.7.147', 6543, timeout=10000) #ggg cuidado con ésta IP
+
+            status = 'Stock'
+            stmt = text(
+                'UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id')
+            stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
+            db.execute(stmt)
+
+            #check confirmado
+
+            conn = HTTPConnection('192.168.7.135', 6543, timeout=1000) #ggg cuidado con ésta IP
             conn.request('POST', '/transaccion', json.dumps({
                 'monto': order_data['total'] * -1,
                 'descripcion': 'compra en tienda',
                 'institucion': 'cocollector',
                 'tarjeta': current_user_data['Tarjeta_credito']
             }))
+            #Update a stock
+            #Checar estado, si es confirmado, pasa a pagado
+
 
             if conn.getresponse().code == 200:
-                status = 'Confirmado'
+                #status = 'Confirmado'
+                status = 'Pagado'
                 stmt = text('UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id')
                 stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
                 db.execute(stmt)

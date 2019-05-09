@@ -140,8 +140,9 @@ def _delete_product(request: Request) -> Response:
     if(request.authenticated_userid):
         try:
             product_data = request.json_body
-            stmt = text('DELETE FROM cocollector."Producto" WHERE "ID_Producto" = :id')
-            stmt = stmt.bindparams(id = product_data['id'])
+            stmt = text('DELETE FROM cocollector."Imagen" WHERE "Producto" = :product;'
+                        'DELETE FROM cocollector."Producto" WHERE "ID_Producto" = :id')
+            stmt = stmt.bindparams( product = product_data['id'], id = product_data['id'])
             db.execute(stmt)
             return Response(status = 200)
         except Exception as e:
