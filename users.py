@@ -34,7 +34,7 @@ from "Usuario"
        inner join "Direcciones" on "Usuario"."ID" = "Direcciones"."Usuario"
 where "Usuario"."ID" = :id
 """)'''
-            stmt: TextClause = text('SELECT "ID", "Nombre_usuario", "Correo", "Nombre", "Apellido_paterno", "Apellido_materno", "Tipo" from cocollector."Usuario" where "ID" = :id')
+            stmt: TextClause = text('SELECT "ID", "Nombre_usuario", "Correo", "Nombre", "Apellido_paterno", "Apellido_materno", "Tipo", "Contrasena" from cocollector."Usuario" where "ID" = :id')
             stmt = stmt.bindparams(id=user_id)
             result = db.execute(stmt)
 
@@ -50,7 +50,7 @@ where "Usuario"."ID" = :id
 def _create_user(request: Request) -> Response:
     try:
         user_data = request.json_body
-        print(user_data)
+        print(user_data)Z
         stmt: TextClause = text('INSERT into cocollector."Usuario"("Nombre_usuario",'
                                 '"Correo",'
                                 '"Contrasena",'

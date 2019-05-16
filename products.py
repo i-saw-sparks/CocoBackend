@@ -137,6 +137,7 @@ def _modify_product(request: Request) -> Response:
 #Método para eliminar un producto, sólo puede ser ejecutado por un usuario de tipo administrador. La verificación se realiza
 #mediante un token. Se obtieneel id del producto a eliminar en el Request.
 def _delete_product(request: Request) -> Response:
+    print (":3")
     if(request.authenticated_userid):
         try:
             product_data = request.json_body
