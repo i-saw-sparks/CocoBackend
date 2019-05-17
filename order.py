@@ -23,6 +23,8 @@ def alchemyencoder(obj):
 
 
 def _get_order(request: Request) -> Response:
+    """Obtinene una request y devuelve todas las ordenes que tenga el usuario en JSON,
+    en caso de recibir el parametro id, se devuelve la orden especifica en JSON."""
     if request.authenticated_userid is not None:
         try:
             order_data = request.params
@@ -67,6 +69,8 @@ def _get_order(request: Request) -> Response:
 
 
 def _modify_order(request: Request) -> Response:
+    """Recibe un objeto Request. Modifica los datos de una orden.
+    La funcion solo modifica los datos que fueron enviados como parametros."""
     if request.authenticated_userid:
         try:
             order_data = request.json_body
@@ -99,8 +103,12 @@ def _modify_order(request: Request) -> Response:
 
 
 def _create_order(request: Request) -> Response:
+    """Recibe un objeto Request. Crea una orden con los datos
+    que se enviaron como parametros. Devuelve la id
+    de la orden creada."""
     if request.authenticated_userid:
         try:
+            #transaction = db.transaction()
             order_data = request.json_body
             stmt: TextClause = text('INSERT into cocollector."Orden"("Total",'
                                     '"Status",'
@@ -118,32 +126,56 @@ def _create_order(request: Request) -> Response:
             stmt: TextClause = text('SELECT * from "BDCocoProyecto".cocollector."Usuario" where "ID" = :id')
             stmt = stmt.bindparams(id=request.authenticated_userid)
             user_result = db.execute(stmt)
+
             current_user_data = [dict(r) for r in user_result][0]
 
             id_order = [dict(r) for r in id_order_data][0]
-            conn = HTTPConnection('192.168.84.75', 6543, timeout=10000)
-            conn.request('POST', '/transaccion', json.dumps({
-                'monto': order_data['total'] * -1,
-                'descripcion': 'compra en tienda',
-                'institucion': 'cocollector',
-                'tarjeta': current_user_data['Tarjeta_credito']
-            }))
 
-            if conn.getresponse().code == 200:
-                status = 'Confirmado'
-                stmt = text('UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id')
-                stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
-                db.execute(stmt)
-            else:
-                status = 'Rechazado'
-                stmt = text('UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id')
-                stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
-                db.execute(stmt)
+            status = 'Stock'
+            stmt = text(
+                'UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id')
+            stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
+            db.execute(stmt)
+
+
+            #check confirmado
+
+            stmt: TextClause = text('SELECT "Status" FROM "BDCocoProyecto".cocollector."Orden" WHERE "ID" = :id')
+            stmt = stmt.bindparams(id=id_order['ID'])
+            status_result = db.execute(stmt)
+
+            print(status_result)
+            status = [dict(r) for r in status_result][0]['Status']
+
+
+            if status == 'Esperando confirmacion':  #Checar
+                conn = HTTPConnection('192.168.7.90', 6543, timeout=300) #ggg cuidado con ésta IP
+                conn.request('POST', '/transaccion', json.dumps({
+                    'monto': order_data['total'] * -1,
+                    'descripcion': 'compra en tienda',
+                    'institucion': 'cocollector',
+                    'tarjeta': current_user_data['Tarjeta_credito']
+                }))
+                #Update a stock
+                #Checar estado, si es confirmado, pasa a pagadox
+
+
+                if conn.getresponse().code == 200:
+                    #status = 'Confirmado'
+                    status = 'Pagado'
+                    stmt = text('UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id')
+                    stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
+                    db.execute(stmt)
+                else:
+                    status = 'Rechazado'
+                    stmt = text('UPDATE cocollector."Orden" set "Status" = :status where "BDCocoProyecto".cocollector."Orden"."ID" = :order_id ')
+                    stmt = stmt.bindparams(order_id=id_order['ID'], status=status)
+                    db.execute(stmt)
 
             return Response(status=200,
                             content_type='application/json',
                             charset='utf-8',
-                            body=json.dumps({'id': id_order['ID']}))
+                            body=json.dumps({'id': id_order['ID'], status: status}))
         except Exception as e:
             print(e)
             return Response(status=400)
@@ -152,7 +184,8 @@ def _create_order(request: Request) -> Response:
 
 
 def _delete_order(request: Request) -> Response:
-
+    """Recibe un objeto Request. Elimina la orden
+    que fue especificada por el parametro id."""
     if request.authenticated_userid:
         delete_data = request.json_body
 
@@ -168,6 +201,8 @@ def _delete_order(request: Request) -> Response:
 
 
 def order_entry(request: Request):
+    """Recibe un objeto Request. Ejecuta un metodo
+    dependiendo del metodo http usado"""
     if request.method == 'GET':
         return _get_order(request)
     elif request.method == 'POST':

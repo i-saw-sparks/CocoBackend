@@ -15,14 +15,16 @@ from products import product_entry
 from pyramid.renderers import JSON
 
 import datetime
+import json
+
 from category import category_entry
 
 
 def hello_world(request):
     return Response(
-        content_type="text/plain",
-        body='hola'
-    )
+        content_type="application/json",
+        status=404)
+
 
 def add_cors_headers_response_callback(event):
     def cors_headers(request, response):
@@ -67,6 +69,8 @@ if __name__ == '__main__':
         config.add_view(login_entry, route_name='login')
         config.add_route('category', '/categorias')
         config.add_view(category_entry, route_name='category')
+        config.add_route('else', '/*subpath')
+        config.add_view(hello_world, route_name='else')
         app = config.make_wsgi_app()
     server = make_server('0.0.0.0', 6543, app)
     server.serve_forever()
